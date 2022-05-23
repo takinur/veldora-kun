@@ -35,7 +35,7 @@ class BinshopsReaderController extends Controller
      * @param null $category_slug
      * @return mixed
      */
-    public function index($locale, $category_slug = null, Request $request)
+    public function index($locale, Request $request, $category_slug = null)
     {
         // the published_at + is_published are handled by BinshopsBlogPublishedScope, and don't take effect if the logged in user can manageb log posts
 
@@ -47,28 +47,30 @@ class BinshopsReaderController extends Controller
         if ($category_slug) {
             $category = BinshopsCategoryTranslation::where("slug", $category_slug)->with('category')->firstOrFail()->category;
             $categoryChain = $category->getAncestorsAndSelf();
-            $posts_1 = $category->posts()->where("binshops_post_categories.category_id", $category->id)->with([ 'postTranslations' => function($query) use ($request){
+            $posts = $category->posts()->where("binshops_post_categories.category_id", $category->id)->with([ 'postTranslations' => function($query) use ($request){
                 $query->where("lang_id" , '=' , $request->get("lang_id"));
             }
-            ])->paginate(config("binshopsblog.per_page", 10));
+            ])->get();
 
-            foreach ($posts_1 as $post) {
-                $trans = $post->postTranslations[0];
-                $trans->post = $post;
-                array_push($posts, $trans);
-            }
+            $posts = BinshopsPostTranslation::join('binshops_posts', 'binshops_post_translations.post_id', '=', 'binshops_posts.id')
+                ->where('lang_id', $request->get("lang_id"))
+                ->where("is_published" , '=' , true)
+                ->where('posted_at', '<', Carbon::now()->format('Y-m-d H:i:s'))
+                ->orderBy("posted_at", "desc")
+                ->whereIn('binshops_posts.id', $posts->pluck('id'))
+                ->paginate(config("binshopsblog.per_page", 10));
 
             // at the moment we handle this special case (viewing a category) by hard coding in the following two lines.
             // You can easily override this in the view files.
             \View::share('binshopsblog_category', $category); // so the view can say "You are viewing $CATEGORYNAME category posts"
             $title = 'Posts in ' . $category->category_name . " category"; // hardcode title here...
         } else {
-            $posts = BinshopsPostTranslation::where('lang_id', $request->get("lang_id"))
-                ->with(['post' => function($query){
-                    $query->where("is_published" , '=' , true);
-                    $query->where('posted_at', '<', Carbon::now()->format('Y-m-d H:i:s'));
-                    $query->orderBy("posted_at", "desc");
-                }])->paginate(config("binshopsblog.per_page", 10));
+            $posts = BinshopsPostTranslation::join('binshops_posts', 'binshops_post_translations.post_id', '=', 'binshops_posts.id')
+                ->where('lang_id', $request->get("lang_id"))
+                ->where("is_published" , '=' , true)
+                ->where('posted_at', '<', Carbon::now()->format('Y-m-d H:i:s'))
+                ->orderBy("posted_at", "desc")
+                ->paginate(config("binshopsblog.per_page", 10));
         }
 
         //load category hierarchy
@@ -127,7 +129,7 @@ class BinshopsReaderController extends Controller
     public function view_category($locale, $hierarchy, Request $request)
     {
         $categories = explode('/', $hierarchy);
-        return $this->index($locale, end($categories), $request);
+        return $this->index($locale, $request, end($categories));
     }
 
     /**
@@ -149,6 +151,10 @@ class BinshopsReaderController extends Controller
             $captcha->runCaptchaBeforeShowingPosts($request, $blog_post);
         }
 
+        $categories = $blog_post->post->categories()->with([ 'categoryTranslations' => function($query) use ($request){
+            $query->where("lang_id" , '=' , $request->get("lang_id"));
+        }
+        ])->get();
         return view("binshopsblog::single_post", [
             'post' => $blog_post,
             // the default scope only selects approved comments, ordered by id
@@ -156,6 +162,8 @@ class BinshopsReaderController extends Controller
                 ->with("user")
                 ->get(),
             'captcha' => $captcha,
+            'categories' => $categories,
+            'locale' => $request->get("locale")
         ]);
     }
 

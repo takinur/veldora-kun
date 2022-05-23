@@ -1,8 +1,8 @@
 # Laravel Blog
 Have you worked with Wordpress? Developers call this package wordpress-like laravel blog.
 
-### Contact us for any customization:
-contact@binshops.com
+## [Installation Video - Less than 5 Minutes](https://youtu.be/N9NpFUqbftA)
+[![Laravel Blog Package](http://img.youtube.com/vi/N9NpFUqbftA/0.jpg)](https://youtu.be/N9NpFUqbftA)
 
 ### Lightweight and Comprehensive
 
@@ -19,7 +19,7 @@ Incredible features with a lightweight laravel blog package. I highly recommend 
 - Multi Level Category - nested sets using Baum
 - Multi Language Support 
 
-### Quick and easy installation
+### Quick and easy installation (Multi-lang version)
 1- Install via composer
 
 `composer require binshops/laravel-blog`
@@ -83,8 +83,18 @@ Congrats! Your blog is ready to use. (URLs are customizable in the config file)
 
 To see package on Packagist click this [Link](https://packagist.org/packages/binshops/laravel-blog)
 
-### Bagisto version
-To see the Bagisto version of this package go to `bagisto-compatible` branch 
+### Single Language Version
+To install the single language version of the package use version v8.1x:
+
+1- `composer require binshops/laravel-blog:v8.1.2`
+
+2- `php artisan vendor:publish --provider="BinshopsBlog\BinshopsBlogServiceProvider"`
+
+3- `php artisan vendor:publish --tag=laravel-fulltext`
+
+4- `php artisan migrate;`
+
+You can see the single version in "single-lang" branch.
 
 ## Important Notes
 - For laravel 8.x's default auth User model, change user model in `binshopsblog.php` to: `\App\Models\User::class`
@@ -143,9 +153,31 @@ Add these (and an Event Listener) to your `EventServiceProvider.php` file to mak
 
 ## Built in CAPTCHA / anti spam
 
-There is a built in captcha (anti spam comment) system built in, which will be easy for you to replace with your own implementation.
+There is a built-in captcha (anti-spam comment) system built in, which will be easy for you to replace with your own implementation.
 
-  Please see [this Captcha docs](https://binshops.binshops.com/laravel-blog-package#captcha) for  more details.
+There is a basic anti-spam captcha function built-in.
+
+See the config/binshops.php captcha section. There is a built in system (basic!) that will prevent most automated spam attempts.
+Writing your own captcha system:
+
+I wrote the captcha system simple on purpose, so you can add your own captcha options. It should be easy to add any other captcha system to this.
+
+If you want to write your own implementation then create your own class that implements \BinshopsBlog\Interfaces\CaptchaInterface, then update the config/binshopsblog.php file (change the captcha_type option).
+
+There are three methods you need to implement:
+public function captcha_field_name() : string
+
+Return a string such as "captcha". It is used for the form validation and <input name=???>.
+public function view() : string
+
+What view file should the binshops::partials.add_comment_form view include? You can set this to whatever you need, and then create your own view file. The default included basic captcha class will return "binshops::captcha.basic".
+public function rules() : array
+
+Return an array for the rules (which are just the standard Laravel validation rules. This is where you can check if the captcha was successful or not.
+Optional:
+public function runCaptchaBeforeShowingPosts() : null
+
+This isn't part of the interface, it isn't required. By default it does nothing. But you can put some code in this method and it'll be run in the BinshopsReaderController::viewSinglePost method.
 
 ## Image upload errors
 
@@ -161,40 +193,19 @@ Try adding this to config/app.php:
 - **9.2.x** Stable version of package
 - 9.0.x Multi-language support beta release
 - 8.0.x Compatibility with Laravel 8
-- 7.3.2 Some bug fixes
 - 7.3.0 New Admin UI
-- 7.2.2                 
-    - bug fix: do not show search bar when it's disabled
-    - feature: configure to show full text post or preview 
-- 7.2.1                 - adds logout button at admin panel
-- 7.2.0                 
-    - adds sub-category functionality to blog
-    - adds reading progress bar feature (if you upgrade, re-publish config file and view files)
-- 7.1.8                 - ability to remove images from posts (this feature does not work for old posts)
-- 7.1.7                 - updates CKEditor
-- 7.1.5                 - minor fix for recent posts
-- 7.1.4                 - updates fulltext search package which solves the search issue
-- 7.1.2                 - shows categories on blog home page - minor fix (if you upgrade try to re-publish view files)
-- 7.1.1                 - minor fix and some admin panel text changes
-- 7.1.0                 - Adds support for custom user model (if you upgrade, try to publish new config)
-- 7.0.2                 - Bug fix for listing posts and search page
-- 7.0.1                 - made compatible with Laravel 6.x & 7.x
-- 3.1                   - minor fixes
-- 3.0.3                 - fixed RSS feed cache issue
-- 3.0.2                 - fixed default medium image size (changed to 600x400)
 - 3.0.1                 - replaced all short tags (<?) with full opening ones (<?php)
-- 3.0                   - Added separate functionality for uploading images (and save some meta data in db)
-- 2.1                   - added 'short_description' to db + form, and BinshopsBlogPost::generate_introduction() method will try and use this to generate intro text.
 - 2.0                   - added full text search (enable it via the config file - it is disabled by default).
-- 1.2                   - added WYSIWYG, few smaller changes
 - 1.1.1                 - added basic captcha
 - 1.0.5                 - composer.json changes.
 - 1.0                   - First release
-- 0.3                   - Small changes, packagist settings.
 - 0.1                   - Initial release
 
-Contact: contact@binshops.com
+## Contributors ✨
+<table>
+  <tr>
+    <td align="center"><a href="https://github.com/samberrry"><img src="https://avatars.githubusercontent.com/u/20775532?v=4" width="80px;" alt=""/><br /><sub><b>Sam Berry</b></sub></a><br /></td>
+<td align="center"><a href="https://github.com/dasscheman"><img src="https://avatars.githubusercontent.com/u/6064248?v=4" width="80px;" alt=""/><br /><sub><b>Alef Barbeli</b></sub></a><br /> </td>
 
-
-
-
+  </tr>
+</table>

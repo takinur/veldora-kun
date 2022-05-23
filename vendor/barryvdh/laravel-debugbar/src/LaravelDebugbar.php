@@ -450,7 +450,7 @@ class LaravelDebugbar extends DebugBar
             }
         }
 
-        if ($this->shouldCollect('mail', true) && class_exists('Illuminate\Mail\MailServiceProvider')) {
+        if ($this->shouldCollect('mail', true) && class_exists('Illuminate\Mail\MailServiceProvider') && $this->checkVersion('9.0', '<')) {
             try {
                 $mailer = $this->app['mailer']->getSwiftMailer();
                 $this->addCollector(new SwiftMailCollector($mailer));
@@ -1137,7 +1137,7 @@ class LaravelDebugbar extends DebugBar
 
             $headers = [];
             foreach ($collector->collect()['measures'] as $k => $m) {
-                $headers[] = sprintf('app;desc="%s";dur=%F', str_replace('"', "'", $m['label']), $m['duration'] * 1000);
+                $headers[] = sprintf('app;desc="%s";dur=%F', str_replace(array("\n", "\r"), ' ', str_replace('"', "'", $m['label'])), $m['duration'] * 1000);
             }
 
             $response->headers->set('Server-Timing', $headers, false);
