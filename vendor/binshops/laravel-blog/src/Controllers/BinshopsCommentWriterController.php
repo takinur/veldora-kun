@@ -25,7 +25,7 @@ class BinshopsCommentWriterController extends Controller
 
     public function __construct()
     {
-        //$this->middleware(UserCanManageBlogPosts::class);
+        $this->middleware(UserCanManageBlogPosts::class);
         $this->middleware(LoadLanguage::class);
 
     }
@@ -81,7 +81,7 @@ class BinshopsCommentWriterController extends Controller
         if (config("binshopsblog.comments.ask_for_author_website")) {
             $new_comment->author_website = $request->get('author_website');
         }
-        if (config("binshopsblog.comments.ask_for_author_website")) {
+        if (config("binshopsblog.comments.ask_for_author_email")) {
             $new_comment->author_email = $request->get('author_email');
         }
         if (config("binshopsblog.comments.save_user_id_if_logged_in", true) && Auth::check()) {

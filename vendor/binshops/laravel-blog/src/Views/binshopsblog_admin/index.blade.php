@@ -2,7 +2,7 @@
 @section("content")
 
 
-    <h5> Manage Blog Posts</h5>
+    <h5>Admin - Manage Blog Posts</h5>
 
     @forelse($post_translations as $post)
         <div class="card m-4" style="">

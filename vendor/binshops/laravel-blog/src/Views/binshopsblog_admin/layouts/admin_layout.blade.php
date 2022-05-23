@@ -59,11 +59,6 @@
                 <!-- Right Side Of Navbar -->
                 <ul class="navbar-nav ml-auto">
                     <!-- Authentication Links -->
-                    @role('admin')
-
-                    <li class='nav-item px-2'><a class='nav-link' href='{{route('dashboard')}}'>Admin Dashboard</a></li>
-                    @endrole
-
 
                     <li class='nav-item px-2'><a class='nav-link' href='{{route("binshopsblog.index" , app('request')->get('locale'))}}'>Blog home</a></li>
 
@@ -94,9 +89,11 @@
                 <div class='list-group-color'>
                     @include("binshopsblog_admin::layouts.sidebar")
                     <div class=' list-group-color text-center mt-5 mb-3 text-muted binshops-version'>
-                        @role('admin')
-                        <small><a href='{{ route('dashboard') }}'>Return to Admin Dashboard</a></small>
-                        @endrole
+                        <small><a href='https://github.com/binshops/laravel-blog'>Binshops Blog</a></small>
+
+                        <small>
+                            Version 9.2.x
+                        </small>
                     </div>
                 </div>
                 <div class='col-md-9 main-content'>

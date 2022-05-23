@@ -5,7 +5,7 @@
     "keywords": ["framework", "laravel"],
     "license": "MIT",
     "require": {
-        "php": "^7.3|^8.0",
+        "php": "^7.3|^8.1",
         "barryvdh/laravel-debugbar": "^3.6",
         "binshops/laravel-blog": "^9.2",
         "cartalyst/stripe-laravel": "^13.0",

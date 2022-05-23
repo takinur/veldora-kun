@@ -30,8 +30,9 @@ abstract class Component
 
     protected $queryString = [];
     protected $computedPropertyCache = [];
-    protected $shouldSkipRender = false;
+    protected $shouldSkipRender = null;
     protected $preRenderedView;
+    protected $forStack = [];
 
     public function __construct($id = null)
     {
@@ -44,14 +45,18 @@ abstract class Component
 
     public function __invoke(Container $container, Route $route)
     {
+        // With octane and full page components the route is caching the
+        // component, so always create a fresh instance.
+        $instance = new static;
+
         // For some reason Octane doesn't play nice with the injected $route.
         // We need to override it here. However, we can't remove the actual
         // param from the method signature as it would break inheritance.
-        $route = request()->route();
+        $route = request()->route() ?? $route;
 
         try {
             $componentParams = (new ImplicitRouteBinding($container))
-                ->resolveAllParameters($route, $this);
+                ->resolveAllParameters($route, $instance);
         } catch (ModelNotFoundException $exception) {
             if (method_exists($route,'getMissing') && $route->getMissing()) {
                 return $route->getMissing()(request());
@@ -60,18 +65,19 @@ abstract class Component
             throw $exception;
         }
 
-        $manager = LifecycleManager::fromInitialInstance($this)
+        $manager = LifecycleManager::fromInitialInstance($instance)
+            ->boot()
             ->initialHydrate()
             ->mount($componentParams)
             ->renderToView();
 
-        if ($this->redirectTo) {
-            return redirect()->response($this->redirectTo);
+        if ($instance->redirectTo) {
+            return redirect()->response($instance->redirectTo);
         }
 
-        $this->ensureViewHasValidLivewireLayout($this->preRenderedView);
+        $instance->ensureViewHasValidLivewireLayout($instance->preRenderedView);
 
-        $layout = $this->preRenderedView->livewireLayout;
+        $layout = $instance->preRenderedView->livewireLayout;
 
         return app('view')->file(__DIR__."/Macros/livewire-view-{$layout['type']}.blade.php", [
             'view' => $layout['view'],
@@ -92,17 +98,13 @@ abstract class Component
     public function bootIfNotBooted()
     {
         if (method_exists($this, $method = 'boot')) {
-            ImplicitlyBoundMethod::call(app(), [$this, $method]); 
+            ImplicitlyBoundMethod::call(app(), [$this, $method]);
         }
     }
 
     public function initializeTraits()
     {
         foreach (class_uses_recursive($class = static::class) as $trait) {
-            if (method_exists($class, $method = 'boot'.class_basename($trait))) {
-                ImplicitlyBoundMethod::call(app(), [$this, $method]); 
-            }
-
             if (method_exists($class, $method = 'initialize'.class_basename($trait))) {
                 $this->{$method}();
             }
@@ -161,7 +163,9 @@ abstract class Component
 
     public function renderToView()
     {
-        if ($this->shouldSkipRender) return null;
+        if ($this->shouldSkipRender) {
+            return $this->keepRenderedChildren();
+        }
 
         Livewire::dispatch('component.rendering', $this);
 
@@ -254,6 +258,32 @@ abstract class Component
                 unset($this->computedPropertyCache[$i]);
             }
         });
+    }
+
+    public function addToStack($stack, $type, $contents, $key = null)
+    {
+        $this->forStack[] = [
+            'key' => $key ?: $this->id,
+            'stack' => $stack,
+            'type' => $type,
+            'contents' => $contents,
+        ];
+    }
+
+    public function getForStack()
+    {
+        return $this->forStack;
+    }
+    
+    function __isset($property)
+    {
+        try {
+            $this->__get($property);
+            return true;
+        } catch(PropertyNotFoundException $ex) {
+            return false;
+        }
+        return false;
     }
 
     public function __get($property)

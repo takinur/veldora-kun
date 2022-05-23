@@ -4,6 +4,7 @@ namespace Srmklive\PayPal\Traits;
 
 use GuzzleHttp\Client as HttpClient;
 use GuzzleHttp\Exception\ClientException as HttpClientException;
+use GuzzleHttp\Utils;
 use Psr\Http\Message\StreamInterface;
 use RuntimeException;
 
@@ -93,11 +94,22 @@ trait PayPalHttpClient
             'CURLOPT_SSLCERT'           => 10025,
         ];
 
-        foreach ($constants as $key => $value) {
-            if (!defined($key)) {
-                define($key, $constants[$key]);
-            }
+        foreach ($constants as $key => $item) {
+            $this->defineCurlConstant($key, $item);
         }
+    }
+
+    /**
+     * Declare a curl constant.
+     *
+     * @param string $key
+     * @param string $value
+     *
+     * @return bool
+     */
+    protected function defineCurlConstant(string $key, string $value)
+    {
+        return defined($key) ? true : define($key, $value);
     }
 
     /**
@@ -107,7 +119,7 @@ trait PayPalHttpClient
      *
      * @return void
      */
-    public function setClient($client = null)
+    public function setClient(HttpClient $client = null)
     {
         if ($client instanceof HttpClient) {
             $this->client = $client;
@@ -157,7 +169,7 @@ trait PayPalHttpClient
         $locale = empty($this->locale) ? 'en_US' : $this->locale;
         $this->locale = $locale;
 
-        $validateSSL = empty($validateSSL) ? true : $this->validateSSL;
+        $validateSSL = empty($this->validateSSL) ? true : $this->validateSSL;
         $this->validateSSL = $validateSSL;
     }
 
@@ -168,7 +180,7 @@ trait PayPalHttpClient
      *
      * @return StreamInterface
      */
-    private function makeHttpRequest()
+    private function makeHttpRequest(): StreamInterface
     {
         try {
             return $this->client->{$this->verb}(
@@ -176,7 +188,7 @@ trait PayPalHttpClient
                 $this->options
             )->getBody();
         } catch (HttpClientException $e) {
-            throw new RuntimeException($e->getRequest()->getBody().' '.$e->getResponse()->getBody());
+            throw new RuntimeException($e->getResponse()->getBody());
         }
     }
 
@@ -189,20 +201,17 @@ trait PayPalHttpClient
      *
      * @return array|StreamInterface|string
      */
-    private function doPayPalRequest($decode = true)
+    private function doPayPalRequest(bool $decode = true)
     {
         try {
+            $this->apiUrl = collect([$this->config['api_url'], $this->apiEndPoint])->implode('/');
+
             // Perform PayPal HTTP API request.
             $response = $this->makeHttpRequest();
 
-            return ($decode === false) ? $response->getContents() : \GuzzleHttp\json_decode($response, true);
+            return ($decode === false) ? $response->getContents() : Utils::jsonDecode($response, true);
         } catch (RuntimeException $t) {
-            $message = collect($t->getMessage())->implode('\n');
+            return ($decode === false) ? $t->getMessage() : Utils::jsonDecode('{"error":'.$t->getMessage().'}', true);
         }
-
-        return [
-            'type'    => 'error',
-            'message' => $message,
-        ];
     }
 }
